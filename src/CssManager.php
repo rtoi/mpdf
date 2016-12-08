@@ -481,6 +481,43 @@ class CssManager
 		$c = '#000000';
 		$s = 'none';
 
+        // R.T. 08.12.2016
+        // The original code does not take into account for example the following cases
+        // 1) solid 1px
+        // 2) #000000 1px
+        // 3) solid #000 1px
+        // 4) #000 solid 1px
+        // 5) 1px #000 solid
+        
+        // It's better to loop through the $prop array and search for a parameter one by one.
+        // borderstyle
+        if (count($prop) == 0 || count($prop) > 3) {
+            return '';
+        }
+        foreach($prop as $key => $val) {
+            if (in_array($val, $this->mpdf->borderstyles) || $val == 'none' || $val == 'hidden') {
+                $s = $val;
+                unset($prop[$key]);
+                break;
+            }
+        }
+        // color
+        // Avoid accepting plain 0 as a color as it is meant to be width of a border.
+        // Other widths than 0 should have a unit with them.
+        foreach($prop as $key => $val) {
+            if ($this->colorConvertor->convert($val, $this->mpdf->PDFAXwarnings) && $val !== '0') {
+                $c = $val;
+                unset($prop[$key]);
+                break;
+            }
+        }
+        // Width of the border.
+        // We expect the last (if any) element in the array to be the width of the border
+        if (count($prop)) {
+            reset($prop);
+            $w = array_values($prop)[0];
+        }
+        /*
 		if (count($prop) == 1) {
 			// solid
 			if (in_array($prop[0], $this->mpdf->borderstyles) || $prop[0] == 'none' || $prop[0] == 'hidden') {
@@ -529,7 +566,7 @@ class CssManager
 			}
 		} else {
 			return '';
-		}
+		} */
 		$s = strtolower($s);
 		return $w . ' ' . $s . ' ' . $c;
 	}
